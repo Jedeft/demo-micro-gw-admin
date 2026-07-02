@@ -1,0 +1,22 @@
+# 服务器配置
+[server]
+port = "8080" # 本地服务端口，其他环境请使用80
+jwt_secret = "secret" # 令牌
+jwt_timeout = 10800 #  token过期时间，单位秒
+http_timeout = 60 # 服务超时时间 秒
+
+# 调用服务配置
+[service]
+demo_base_user = "demo-base-user"
+
+# 调试参数
+[debug]
+is_filter_captcha = true # 是否过滤验证码
+random_port = false # 是否随机端口
+echo_debug = true # 是否开启Debug模式，Debug模式下http response会返回详细后台报错，仅用于本地调试使用
+is_filter_token = false # 是否过滤token
+
+[debug.default_user]
+id = 1 # 默认用户ID
+username = "admin" # 默认账号
+name = "张三" # 默认用户名，可以根据实际auth信息进行扩展本地默认信息

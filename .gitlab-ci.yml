@@ -1,0 +1,27 @@
+stages:
+  - lint
+  - gotest
+
+lint:
+  stage: lint
+  only:
+    - dev
+    - test
+    - rc
+    - master
+    - main
+  script:
+    - golangci-lint run --out-format=checkstyle > lint.xml
+  allow_failure: true
+
+gotest:
+  stage: gotest
+  only:
+    - dev
+    - test
+    - rc
+    - master
+    - main
+  script:
+    - go test --count=1 -coverprofile=coverage.out -json ./... >> report.json
+  allow_failure: true

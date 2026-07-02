@@ -1,0 +1,18 @@
+# 版本控制
+.git
+.gitignore
+
+# 构建产物
+*.exe
+*.test
+*.out
+app
+
+# 工具与缓存（含 socket，会导致 docker 打包失败）
+.codegraph
+
+# 编辑器/系统文件
+.idea
+.vscode
+.DS_Store
+*.swp

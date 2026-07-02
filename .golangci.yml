@@ -1,0 +1,88 @@
+# golangci-lint 配置
+# 适用 golangci-lint v1.64+（Go 1.25）。旧配置启用了已废弃/已停用的 linter
+# (golint、varcheck、maligned) 和废弃配置项 (run.skip-dirs、govet.check-shadowing、service)，
+# 且 issues-exit-code:0 使 CI 无法拦截告警，已废弃。
+
+run:
+  timeout: 10m
+  # issues-exit-code 默认为 1，发现告警即失败，让 make golangci 真正起到 CI 门禁作用。
+  # 依赖通过 Makefile 的 go mod vendor 保证在场。
+
+linters-settings:
+  gocyclo:
+    min-complexity: 30 # 函数圈复杂度上限
+  funlen:
+    lines: 150
+    statements: 60
+  dupl:
+    threshold: 100
+  goconst:
+    min-len: 2
+    min-occurrences: 3
+  goimports:
+    local-prefixes: github.com/Jedeft/demo-micro-gw-admin # 本项目模块路径，自身包单独成组
+  govet:
+    enable:
+      - atomicalign
+  revive:
+    min-confidence: 0.3
+  errorlint:
+    errorf: true # 检查 fmt.Errorf 是否用 %w 包裹错误
+    asserts: true # 检查 err == nil 后的类型断言
+    comparison: true # 检查 errors.Is/As 与 == 的误用
+  gosec:
+    excludes:
+      - G104 # 未检查错误由 errcheck 更精确地覆盖，避免重复告警
+    severity: medium
+    confidence: medium
+  misspell:
+    locale: US
+
+linters:
+  disable-all: true
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - bodyclose
+    - revive # 取代已停用的 golint
+    - gosimple
+    - typecheck
+    - unused # 取代已停用的 varcheck/deadcode
+    - goconst
+    - goimports
+    - gocyclo
+    - funlen
+    - gosec # 安全：加密、硬编码凭证、弱随机等
+    - errorlint # 错误处理：%w 包裹、类型断言、errors.Is/As
+    - gocritic # 现代最佳实践
+    - unparam # 未使用的函数参数/返回值
+    - misspell # 注释/字符串拼写
+    - nolintlint # 校验 //nolint 指令规范（需附 reason）
+
+issues:
+  exclude-rules:
+    # 测试文件：放宽质量检查（errcheck/gocyclo/gosec/goconst/unparam 噪音大）
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+        - goconst
+        - unparam
+    # 测试函数未使用的 t *testing.T / mock 方法未使用的参数（接口签名约束）属通病，豁免
+    - path: _test\.go
+      linters:
+        - revive
+      text: "unused-parameter"
+  exclude-dirs:
+    - vendor
+    - test
+    - docs
+  exclude-files:
+    # protoc-gen-go 生成的代码不纳入检查
+    - ".*\\.pb\\.go"
+    - blob.go
+  max-issues-per-linter: 0
+  max-same-issues: 0

@@ -1,0 +1,37 @@
+# 服务信息
+[xuanwu-service-info]
+service_name = "demo-micro-gw-admin"
+service_num = 1 # 服务编号 0-9999，每个服务独一无二编号
+service_type = 1 # 服务类型 1：gw 2：srv 3：base 4：calc 5：soft 6:lib
+
+# 支持组件
+[xuanwu-supports]
+log = true
+db = false
+tracer = true
+xerr = true
+cache = true
+
+# 日志
+[xuanwu-log]
+level = -1 #-1：debug 0：info 1：warn 2：error 3：dpannic 4：panic 5：fatal
+development = true  # 是否开启debug模式，开启后DPanicLevel进行堆栈跟踪
+
+# tracer（OpenTelemetry OTLP）
+[xuanwu-tracer]
+exporter = "otlp-grpc"          # 导出器类型，当前仅支持 "otlp-grpc"
+endpoint = "127.0.0.1:4317"     # OTLP gRPC 接收端地址
+insecure = true                 # 是否禁用 TLS（本地开发时启用）
+sampler_ratio = 1.0             # 采样率 0.0~1.0
+
+# cache
+[[xuanwu-cache]]
+alias = "license-jwt"
+# addr = "10.7.0.202:4000"
+addr = "127.0.0.1:6379"
+password = ""
+db = 10 # 指定数据库
+pool_size = 15 # 连接池最大socket连接数，默认4倍cpu数
+min_idle = 10 # 维持最小连接数
+read_timeout = 3 # 读超时，单位秒
+write_timeout = 5 # 写超时，单位秒
