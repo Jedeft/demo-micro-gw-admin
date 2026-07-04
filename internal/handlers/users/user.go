@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	userpb "github.com/Jedeft/demo-micro-base-user/api/protobuf"
@@ -78,12 +79,12 @@ func (h *UserHandler) Add(c echo.Context) error {
 	if err := req.valid(); err != nil {
 		return err
 	}
-	_, err := h.userSrv.UserClient.Create(c.Request().Context(), &userpb.CreateUserReq{
+	_, err := h.userSrv.UserClient.Create(c.Request().Context(), &userpb.CreateUserRequest{
 		Username:      req.Username,
 		Password:      req.Password,
 		Name:          req.Name,
 		Phone:         req.Phone,
-		CreatedUserID: handlers.GetUserInfo(c).ID,
+		CreatedUserId: handlers.GetUserInfo(c).ID,
 	})
 	if err != nil {
 		h.log.Bg().Error("user create error", zap.Error(err))
@@ -112,8 +113,8 @@ func (h *UserHandler) Get(c echo.Context) error {
 	if err := req.Valid(); err != nil {
 		return err
 	}
-	out, err := h.userSrv.UserClient.Get(c.Request().Context(), &userpb.GetUserReq{
-		ID: req.ID,
+	out, err := h.userSrv.UserClient.Get(c.Request().Context(), &userpb.GetUserRequest{
+		Id: req.ID,
 	})
 	if err != nil {
 		st := status.Convert(err)
@@ -123,7 +124,7 @@ func (h *UserHandler) Get(c echo.Context) error {
 		return err
 	}
 	rsp.Row = GetUserRsp{
-		ID:       out.ID,
+		ID:       out.Id,
 		Username: out.Username,
 		Name:     out.Name,
 		Phone:    out.Phone,
@@ -138,7 +139,7 @@ type ListUserReq struct {
 	Name           string `query:"name"`  // 模糊匹配
 	Phone          string `query:"phone"` // 模糊匹配
 	Limit          int    `query:"limit"`
-	Offset         int    `query:"offset"`
+	PageToken      string `query:"page_token"` // 游标分页令牌，空字符串表示第一页
 }
 
 // ListUserRsp 用户列表数据
@@ -167,14 +168,11 @@ func (h *UserHandler) List(c echo.Context) error {
 	if req.Limit > maxUserListLimit {
 		req.Limit = maxUserListLimit
 	}
-	if req.Offset < 0 {
-		req.Offset = 0
-	}
 
-	out, err := h.userSrv.UserClient.List(c.Request().Context(), &userpb.ListUserReq{
-		PageLimit:  uint32(req.Limit),  //nolint:gosec // G115: 已 clamp 至 [1,100]
-		PageOffset: uint32(req.Offset), //nolint:gosec // G115: 已 floor 至 >=0
-		Condition: &userpb.SearchUserReq{
+	out, err := h.userSrv.UserClient.List(c.Request().Context(), &userpb.ListUserRequest{
+		PageSize:  uint32(req.Limit),
+		PageToken: req.PageToken,
+		Condition: &userpb.SearchUserRequest{
 			BeginCreatedAt: req.BeginCreatedAt,
 			EndCreatedAt:   req.EndCreatedAt,
 		},
@@ -189,6 +187,7 @@ func (h *UserHandler) List(c echo.Context) error {
 	}
 	rsp.Rows = rows
 	rsp.Total = out.Total
+	rsp.NextPageToken = out.NextPageToken
 	return c.JSON(http.StatusOK, rsp)
 }
 
@@ -196,12 +195,12 @@ func (h *UserHandler) List(c echo.Context) error {
 func (h *UserHandler) assUserList(list []*userpb.UserRow, c echo.Context) ([]ListUserRsp, error) {
 	userIDs := make([]uint32, 0, len(list))
 	for _, v := range list {
-		userIDs = append(userIDs, v.CreatedUserID)
+		userIDs = append(userIDs, v.CreatedUserId)
 	}
 
 	// 通过ID集合检索数据
-	userNameOut, err := h.userSrv.UserClient.Search(c.Request().Context(), &userpb.SearchUserReq{
-		IDs: utils.RemoveUint32Duplication(userIDs),
+	userNameOut, err := h.userSrv.UserClient.Search(c.Request().Context(), &userpb.SearchUserRequest{
+		Ids: utils.RemoveUint32Duplication(userIDs),
 	})
 	if err != nil {
 		return nil, err
@@ -210,17 +209,17 @@ func (h *UserHandler) assUserList(list []*userpb.UserRow, c echo.Context) ([]Lis
 	// 转化成Map字典，便于检索
 	userNameDic := make(map[uint32]string)
 	for _, v := range userNameOut.Rows {
-		userNameDic[v.ID] = v.Name
+		userNameDic[v.Id] = v.Name
 	}
 	rows := make([]ListUserRsp, 0, len(list))
 	for _, v := range list {
 		rows = append(rows, ListUserRsp{
-			ID:              v.ID,
+			ID:              v.Id,
 			Name:            v.Name,
 			Username:        v.Username,
 			Phone:           v.Phone,
-			CreatedUserID:   v.CreatedUserID,
-			CreatedUserName: userNameDic[v.CreatedUserID],
+			CreatedUserID:   v.CreatedUserId,
+			CreatedUserName: userNameDic[v.CreatedUserId],
 		})
 	}
 	return rows, nil
@@ -251,7 +250,7 @@ func (h *UserHandler) Search(c echo.Context) error {
 		return err
 	}
 
-	out, err := h.userSrv.UserClient.Search(c.Request().Context(), &userpb.SearchUserReq{
+	out, err := h.userSrv.UserClient.Search(c.Request().Context(), &userpb.SearchUserRequest{
 		UsernameLike: req.Name,
 		PhoneLike:    req.Phone,
 	})
@@ -261,7 +260,7 @@ func (h *UserHandler) Search(c echo.Context) error {
 	rows := make([]SearchUserRsp, 0, len(out.Rows))
 	for _, v := range out.Rows {
 		rows = append(rows, SearchUserRsp{
-			ID:       v.ID,
+			ID:       v.Id,
 			Name:     v.Name,
 			Username: v.Username,
 			Phone:    v.Phone,
@@ -315,13 +314,23 @@ func (h *UserHandler) Update(c echo.Context) error {
 		note = wrapperspb.String(req.Note)
 	}
 
-	_, err := h.userSrv.UserClient.Update(c.Request().Context(), &userpb.UpdateUserReq{
-		ID:            req.ID,
+	// 构建 FieldMask：name/phone 始终更新，partner/note 按需更新
+	updateMaskPaths := []string{"name", "phone"}
+	if partner != nil {
+		updateMaskPaths = append(updateMaskPaths, "partner")
+	}
+	if note != nil {
+		updateMaskPaths = append(updateMaskPaths, "note")
+	}
+
+	_, err := h.userSrv.UserClient.Update(c.Request().Context(), &userpb.UpdateUserRequest{
+		Id:            req.ID,
 		Name:          req.Name,
 		Phone:         req.Phone,
 		Partner:       partner,
 		Note:          note,
-		UpdatedUserID: handlers.GetUserInfo(c).ID,
+		UpdatedUserId: handlers.GetUserInfo(c).ID,
+		UpdateMask:    &fieldmaskpb.FieldMask{Paths: updateMaskPaths},
 	})
 	if err != nil {
 		st := status.Convert(err)
@@ -362,11 +371,11 @@ func (h *UserHandler) ChangePWD(c echo.Context) error {
 	if err := req.valid(); err != nil {
 		return err
 	}
-	_, err := h.userSrv.UserClient.ChangePWD(c.Request().Context(), &userpb.ChangePWDReq{
-		ID:            req.ID,
+	_, err := h.userSrv.UserClient.ChangePassword(c.Request().Context(), &userpb.ChangePasswordRequest{
+		Id:            req.ID,
 		OldPassword:   req.OldPassword,
 		NewPassword:   req.NewPassword,
-		UpdatedUserID: handlers.GetUserInfo(c).ID,
+		UpdatedUserId: handlers.GetUserInfo(c).ID,
 	})
 	if err != nil {
 		return err
@@ -386,9 +395,9 @@ func (h *UserHandler) Delete(c echo.Context) error {
 	if err := req.Valid(); err != nil {
 		return err
 	}
-	_, err := h.userSrv.UserClient.Delete(c.Request().Context(), &userpb.DeleteUserReq{
-		ID:            req.ID,
-		DeletedUserID: handlers.GetUserInfo(c).ID,
+	_, err := h.userSrv.UserClient.Delete(c.Request().Context(), &userpb.DeleteUserRequest{
+		Id:            req.ID,
+		DeletedUserId: handlers.GetUserInfo(c).ID,
 	})
 	if err != nil {
 		return err

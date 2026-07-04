@@ -25,10 +25,11 @@ type RspRow struct {
 
 // RspRows 列表资源返回
 type RspRows struct {
-	Code  uint32      `json:"code"`
-	Msg   string      `json:"msg"`
-	Total int64       `json:"total"`
-	Rows  interface{} `json:"rows,omitempty"`
+	Code          uint32      `json:"code"`
+	Msg           string      `json:"msg"`
+	Total         int64       `json:"total"`
+	Rows          interface{} `json:"rows,omitempty"`
+	NextPageToken string      `json:"next_page_token,omitempty"`
 }
 
 // Valid 校验

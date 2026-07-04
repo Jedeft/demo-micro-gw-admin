@@ -5,6 +5,7 @@ import (
 
 	"github.com/Jedeft/xuanwu/log"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	userpb "github.com/Jedeft/demo-micro-base-user/api/protobuf"
 
@@ -16,7 +17,7 @@ import (
 // handlers -> services -> 下游业务服务 gRPC 调用
 type UserSrv struct {
 	// UserClient 下游 user 服务的原生 gRPC client
-	UserClient userpb.UserClient
+	UserClient userpb.UserServiceClient
 }
 
 // UserService 全局用户服务层实例
@@ -29,13 +30,13 @@ func InitUser() {
 		log.Get().Bg().Fatal("init user service: get grpc conn failed", zap.Error(err))
 	}
 	UserService = UserSrv{
-		UserClient: userpb.NewUserClient(conn),
+		UserClient: userpb.NewUserServiceClient(conn),
 	}
 }
 
 // Login 用户登录：凭用户名+密码获取用户信息，并异步更新最后登录 IP
 func (s *UserSrv) Login(ctx context.Context, username, password, loginIP string) (*userpb.UserRow, error) {
-	out, err := s.UserClient.Get(ctx, &userpb.GetUserReq{
+	out, err := s.UserClient.Get(ctx, &userpb.GetUserRequest{
 		Username: username,
 		Password: password,
 	})
@@ -44,10 +45,13 @@ func (s *UserSrv) Login(ctx context.Context, username, password, loginIP string)
 	}
 
 	// 登录成功后异步更新登录 IP（不影响主流程）
-	_, updateErr := s.UserClient.Update(ctx, &userpb.UpdateUserReq{
-		ID:            out.ID,
-		LastLoginIP:   loginIP,
-		UpdatedUserID: out.ID,
+	_, updateErr := s.UserClient.Update(ctx, &userpb.UpdateUserRequest{
+		Id:            out.Id,
+		LastLoginIp:   loginIP,
+		UpdatedUserId: out.Id,
+		UpdateMask: &fieldmaskpb.FieldMask{
+			Paths: []string{"last_login_ip"},
+		},
 	})
 	if updateErr != nil {
 		log.Get().Bg().Error("user login update system error", zap.Error(updateErr))

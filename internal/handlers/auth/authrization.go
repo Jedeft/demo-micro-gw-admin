@@ -98,7 +98,7 @@ func (h *AuthrizationHandler) Login(c echo.Context) error {
 
 	payload := &handlers.AuthPlyLoad{
 		User: &handlers.UserInfo{
-			ID:       out.ID,
+			ID:       out.Id,
 			Username: out.Username,
 			Name:     out.Name,
 		},

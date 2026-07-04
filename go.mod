@@ -3,7 +3,7 @@ module github.com/Jedeft/demo-micro-gw-admin
 go 1.25.8
 
 require (
-	github.com/Jedeft/demo-micro-base-user v0.0.2
+	github.com/Jedeft/demo-micro-base-user v0.0.3
 	github.com/Jedeft/xuanwu v0.0.1
 	github.com/labstack/echo/v4 v4.15.2
 	go.uber.org/zap v1.27.0
