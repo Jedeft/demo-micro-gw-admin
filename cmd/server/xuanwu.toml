@@ -26,7 +26,7 @@ sampler_ratio = 1.0             # 采样率 0.0~1.0
 
 # cache
 [[xuanwu-cache]]
-alias = "license-jwt"
+alias = "admin-jwt"
 # addr = "10.7.0.202:4000"
 addr = "127.0.0.1:6379"
 password = ""
