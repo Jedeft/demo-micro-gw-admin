@@ -12,10 +12,26 @@ tracer = true
 xerr = true
 cache = true
 
-# 日志
-[xuanwu-log]
-level = -1 #-1：debug 0：info 1：warn 2：error 3：dpannic 4：panic 5：fatal
-development = true  # 是否开启debug模式，开启后DPanicLevel进行堆栈跟踪
+# 日志（支持多个命名 logger，name="" 为业务默认，name="access" 为 HTTP 访问日志）
+[[xuanwu-log]]
+name = ""              # 业务默认日志
+level = -1             # -1：debug 0：info 1：warn 2：error 3：dpannic 4：panic 5：fatal
+development = true     # 是否开启debug模式，开启后DPanicLevel进行堆栈跟踪
+file_name = "./log/app.log"  # 业务日志输出文件
+max_size = 100         # 单文件最大大小（MB）
+max_age = 30            # 日志保留最大天数
+max_backups = 10       # 保留旧文件最大个数
+compress = true        # 是否压缩归档旧文件
+
+[[xuanwu-log]]
+name = "access"        # HTTP 访问日志
+level = 0              # 访问日志用 info 级别
+development = false
+file_name = "./log/access.log"  # 访问日志输出文件
+max_size = 200         # 访问日志量大，单文件最大 200MB
+max_age = 30
+max_backups = 20
+compress = true
 
 # tracer（OpenTelemetry OTLP）
 [xuanwu-tracer]
