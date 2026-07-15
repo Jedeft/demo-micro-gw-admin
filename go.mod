@@ -98,12 +98,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260622175928-b703f567277d // indirect
 )
 
-// 发版时移除此 replace 并发布 xuanwu 新版本。
-replace github.com/Jedeft/xuanwu => /media/ut001165/_dde_data/go-workspace/jedeft/xuanwu
-
-// 发版时移除此 replace 并发布 demo-micro-base-user 新版本。
-replace github.com/Jedeft/demo-micro-base-user => /media/ut001165/_dde_data/go-workspace/jedeft/demo-micro-base-user
-
 // 强制将整体式 google.golang.org/genproto 钉到拆分后版本：xuanwu/demo-micro-base-user 依赖的旧版仍含
 // googleapis/* 包，与拆分模块 genproto/googleapis/{api,rpc} 冲突导致 ambiguous import。
 // 用 replace 而非 require 钉子--replace 不受 go mod tidy 自动移除，更稳健。
