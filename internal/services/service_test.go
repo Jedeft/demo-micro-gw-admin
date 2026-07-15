@@ -16,10 +16,10 @@ import (
 
 func TestInit_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mock := mocks.NewMockUserClient(ctrl)
+	mock := mocks.NewMockUserServiceClient(ctrl)
 	orig := newUserClient
 	t.Cleanup(func() { newUserClient = orig })
-	newUserClient = func() (userpb.UserClient, error) { return mock, nil }
+	newUserClient = func() (userpb.UserServiceClient, error) { return mock, nil }
 
 	Init()
 	assert.Same(t, mock, UserService.UserClient)
@@ -27,7 +27,7 @@ func TestInit_Success(t *testing.T) {
 
 func TestUserSrv_Login_EmptyResult(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mock := mocks.NewMockUserClient(ctrl)
+	mock := mocks.NewMockUserServiceClient(ctrl)
 	mock.EXPECT().Get(gomock.Any(), gomock.Any()).
 		Return(&userpb.UserRow{}, nil)
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).
@@ -37,12 +37,12 @@ func TestUserSrv_Login_EmptyResult(t *testing.T) {
 	out, err := srv.Login(context.Background(), "u", "p", "127.0.0.1")
 	assert.NoError(t, err)
 	assert.NotNil(t, out)
-	assert.Equal(t, uint32(0), out.ID)
+	assert.Equal(t, uint32(0), out.Id)
 }
 
 func TestUserSrv_Login_ContextCancel(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mock := mocks.NewMockUserClient(ctrl)
+	mock := mocks.NewMockUserServiceClient(ctrl)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 

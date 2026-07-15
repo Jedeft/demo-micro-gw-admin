@@ -23,11 +23,11 @@ import (
 	"github.com/Jedeft/demo-micro-gw-admin/internal/services"
 )
 
-// newTestUserHandler 构造一个带 mock UserClient 的 UserHandler。
-func newTestUserHandler(t *testing.T) (*UserHandler, *mocks.MockUserClient) {
+// newTestUserHandler 构造一个带 mock UserServiceClient 的 UserHandler。
+func newTestUserHandler(t *testing.T) (*UserHandler, *mocks.MockUserServiceClient) {
 	t.Helper()
 	ctrl := gomock.NewController(t)
-	mock := mocks.NewMockUserClient(ctrl)
+	mock := mocks.NewMockUserServiceClient(ctrl)
 	h := &UserHandler{
 		log:     log.Get(),
 		userSrv: services.UserSrv{UserClient: mock},
@@ -141,7 +141,7 @@ func TestUserHandler_Add_Success(t *testing.T) {
 	setUserContext(c)
 
 	mock.EXPECT().Create(gomock.Any(), gomock.Any()).
-		Return(&userpb.CreateUseResp{ID: 1}, nil)
+		Return(&userpb.CreateUserResponse{Id: 1}, nil)
 
 	err := h.Add(c)
 	require.NoError(t, err)
@@ -184,7 +184,7 @@ func TestUserHandler_Get_Success(t *testing.T) {
 	c, rec := newQueryContext(http.MethodGet, "/v1/user?id=1", "/v1/user")
 
 	mock.EXPECT().Get(gomock.Any(), gomock.Any()).
-		Return(&userpb.UserRow{ID: 1, Username: "u", Name: "n", Phone: "133"}, nil)
+		Return(&userpb.UserRow{Id: 1, Username: "u", Name: "n", Phone: "133"}, nil)
 
 	err := h.Get(c)
 	require.NoError(t, err)
@@ -230,14 +230,14 @@ func TestUserHandler_List_Success(t *testing.T) {
 	c, rec := newQueryContext(http.MethodGet, "/v1/user/list?limit=10&offset=0", "/v1/user/list")
 
 	rows := []*userpb.UserRow{
-		{ID: 1, Username: "u1", Name: "n1", Phone: "111", CreatedUserID: 10},
-		{ID: 2, Username: "u2", Name: "n2", Phone: "222", CreatedUserID: 10},
+		{Id: 1, Username: "u1", Name: "n1", Phone: "111", CreatedUserId: 10},
+		{Id: 2, Username: "u2", Name: "n2", Phone: "222", CreatedUserId: 10},
 	}
 	mock.EXPECT().List(gomock.Any(), gomock.Any()).
-		Return(&userpb.ListUserResp{Rows: rows, Total: 2}, nil)
+		Return(&userpb.ListUserResponse{Rows: rows, Total: 2}, nil)
 	mock.EXPECT().Search(gomock.Any(), gomock.Any()).
-		Return(&userpb.SearchUserResp{
-			Rows: []*userpb.UserRow{{ID: 10, Name: "creator"}},
+		Return(&userpb.SearchUserResponse{
+			Rows: []*userpb.UserRow{{Id: 10, Name: "creator"}},
 		}, nil)
 
 	err := h.List(c)
@@ -254,9 +254,9 @@ func TestUserHandler_List_DefaultLimit(t *testing.T) {
 	c, _ := newQueryContext(http.MethodGet, "/v1/user/list?limit=0&offset=0", "/v1/user/list")
 
 	mock.EXPECT().List(gomock.Any(), gomock.Any()).
-		Return(&userpb.ListUserResp{Rows: nil, Total: 0}, nil)
+		Return(&userpb.ListUserResponse{Rows: nil, Total: 0}, nil)
 	mock.EXPECT().Search(gomock.Any(), gomock.Any()).
-		Return(&userpb.SearchUserResp{}, nil)
+		Return(&userpb.SearchUserResponse{}, nil)
 
 	err := h.List(c)
 	require.NoError(t, err)
@@ -267,9 +267,9 @@ func TestUserHandler_List_MaxLimitClamp(t *testing.T) {
 	c, _ := newQueryContext(http.MethodGet, "/v1/user/list?limit=200&offset=0", "/v1/user/list")
 
 	mock.EXPECT().List(gomock.Any(), gomock.Any()).
-		Return(&userpb.ListUserResp{Rows: nil, Total: 0}, nil)
+		Return(&userpb.ListUserResponse{Rows: nil, Total: 0}, nil)
 	mock.EXPECT().Search(gomock.Any(), gomock.Any()).
-		Return(&userpb.SearchUserResp{}, nil)
+		Return(&userpb.SearchUserResponse{}, nil)
 
 	err := h.List(c)
 	require.NoError(t, err)
@@ -291,8 +291,8 @@ func TestUserHandler_Search_Success(t *testing.T) {
 	c, rec := newQueryContext(http.MethodGet, "/v1/user/search?name=a&phone=1", "/v1/user/search")
 
 	mock.EXPECT().Search(gomock.Any(), gomock.Any()).
-		Return(&userpb.SearchUserResp{
-			Rows:  []*userpb.UserRow{{ID: 1, Username: "u", Name: "n", Phone: "133"}},
+		Return(&userpb.SearchUserResponse{
+			Rows:  []*userpb.UserRow{{Id: 1, Username: "u", Name: "n", Phone: "133"}},
 			Total: 1,
 		}, nil)
 
@@ -372,7 +372,7 @@ func TestUserHandler_ChangePWD_Success(t *testing.T) {
 	c, rec := newJSONContext(http.MethodPost, "/v1/user/password/update", body)
 	setUserContext(c)
 
-	mock.EXPECT().ChangePWD(gomock.Any(), gomock.Any()).
+	mock.EXPECT().ChangePassword(gomock.Any(), gomock.Any()).
 		Return(&emptypb.Empty{}, nil)
 
 	err := h.ChangePWD(c)
@@ -396,7 +396,7 @@ func TestUserHandler_ChangePWD_RPCError(t *testing.T) {
 	c, _ := newJSONContext(http.MethodPost, "/v1/user/password/update", body)
 	setUserContext(c)
 
-	mock.EXPECT().ChangePWD(gomock.Any(), gomock.Any()).
+	mock.EXPECT().ChangePassword(gomock.Any(), gomock.Any()).
 		Return(nil, status.Error(codes.Internal, "rpc error"))
 
 	err := h.ChangePWD(c)
@@ -442,7 +442,7 @@ func TestAssUserList_Empty(t *testing.T) {
 	c, _ := newQueryContext(http.MethodGet, "/", "/")
 
 	mock.EXPECT().Search(gomock.Any(), gomock.Any()).
-		Return(&userpb.SearchUserResp{}, nil)
+		Return(&userpb.SearchUserResponse{}, nil)
 
 	rows, err := h.assUserList(nil, c)
 	require.NoError(t, err)

@@ -25,11 +25,11 @@ import (
 	"github.com/Jedeft/demo-micro-gw-admin/internal/testutil"
 )
 
-// newTestAuthHandler 构造一个带 mock UserClient 的 AuthrizationHandler。
-func newTestAuthHandler(t *testing.T) (*AuthrizationHandler, *mocks.MockUserClient) {
+// newTestAuthHandler 构造一个带 mock UserServiceClient 的 AuthrizationHandler。
+func newTestAuthHandler(t *testing.T) (*AuthrizationHandler, *mocks.MockUserServiceClient) {
 	t.Helper()
 	ctrl := gomock.NewController(t)
-	mock := mocks.NewMockUserClient(ctrl)
+	mock := mocks.NewMockUserServiceClient(ctrl)
 	h := &AuthrizationHandler{
 		log:     log.Get(),
 		userSrv: services.UserSrv{UserClient: mock},
@@ -115,7 +115,7 @@ func TestAuthrizationHandler_Login_Success(t *testing.T) {
 	c, rec := newAuthJSONContext(http.MethodPost, "/v1/login", body)
 
 	mock.EXPECT().Get(gomock.Any(), gomock.Any()).
-		Return(&userpb.UserRow{ID: 1, Username: "admin", Name: "Admin"}, nil)
+		Return(&userpb.UserRow{Id: 1, Username: "admin", Name: "Admin"}, nil)
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).
 		Return(&emptypb.Empty{}, nil)
 

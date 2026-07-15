@@ -1,6 +1,12 @@
+# 取消 GOROOT 环境变量导出，避免系统 /usr/local/go(1.25.4) 与 GOTOOLCHAIN 自动
+# 下载的 toolchain(1.25.8) 冲突导致 compile 版本不匹配。现代 Go 会自动推断 GOROOT。
+unexport GOROOT
+
 # 镜像相关变量（可通过环境变量覆盖）
 DOCKER_TARGET ?= demo-micro-gw-admin
 DOCKER_TAG    ?= latest
+
+
 
 .PHONY: build build-linux run docker-build docker-release golangci
 

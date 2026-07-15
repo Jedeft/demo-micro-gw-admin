@@ -24,12 +24,12 @@ type UserSrv struct {
 var UserService UserSrv
 
 // newUserClient 创建下游 user gRPC client；测试中可替换以隔离 gRPC 连接依赖。
-var newUserClient = func() (userpb.UserClient, error) {
+var newUserClient = func() (userpb.UserServiceClient, error) {
 	conn, err := grpc.GetConn("demo-base-user")
 	if err != nil {
 		return nil, err
 	}
-	return userpb.NewUserClient(conn), nil
+	return userpb.NewUserServiceClient(conn), nil
 }
 
 // InitUser 初始化用户服务层，创建下游 gRPC client
@@ -39,7 +39,7 @@ func InitUser() {
 		log.Get().Bg().Fatal("init user service: get grpc conn failed", zap.Error(err))
 	}
 	UserService = UserSrv{
-		UserClient: userpb.NewUserServiceClient(conn),
+		UserClient: client,
 	}
 }
 

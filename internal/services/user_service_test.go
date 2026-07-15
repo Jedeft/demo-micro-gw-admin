@@ -17,11 +17,11 @@ import (
 	"github.com/Jedeft/demo-micro-gw-admin/internal/mocks"
 )
 
-// newMockClient 构造一个 gomock controller 与对应的 MockUserClient，并在测试结束自动清理。
-func newMockClient(t *testing.T) (*gomock.Controller, *mocks.MockUserClient) {
+// newMockClient 构造一个 gomock controller 与对应的 MockUserServiceClient，并在测试结束自动清理。
+func newMockClient(t *testing.T) (*gomock.Controller, *mocks.MockUserServiceClient) {
 	t.Helper()
 	ctrl := gomock.NewController(t)
-	return ctrl, mocks.NewMockUserClient(ctrl)
+	return ctrl, mocks.NewMockUserServiceClient(ctrl)
 }
 
 func TestUserSrv_Login_GetError(t *testing.T) {
@@ -39,7 +39,7 @@ func TestUserSrv_Login_GetError(t *testing.T) {
 func TestUserSrv_Login_UpdateError(t *testing.T) {
 	_, mock := newMockClient(t)
 	mock.EXPECT().Get(gomock.Any(), gomock.Any()).
-		Return(&userpb.UserRow{ID: 1, Username: "u"}, nil)
+		Return(&userpb.UserRow{Id: 1, Username: "u"}, nil)
 	// Update 失败仅记录日志，不影响主流程返回 out。
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).
 		Return(&emptypb.Empty{}, errors.New("rpc update failed"))
@@ -48,21 +48,21 @@ func TestUserSrv_Login_UpdateError(t *testing.T) {
 	out, err := srv.Login(context.Background(), "u", "p", "127.0.0.1")
 	require.NoError(t, err)
 	require.NotNil(t, out)
-	assert.Equal(t, uint32(1), out.ID)
+	assert.Equal(t, uint32(1), out.Id)
 	assert.Equal(t, "u", out.Username)
 }
 
 func TestUserSrv_Login_Success(t *testing.T) {
 	_, mock := newMockClient(t)
 	mock.EXPECT().Get(gomock.Any(), gomock.Any()).
-		Return(&userpb.UserRow{ID: 2, Username: "u", Name: "n"}, nil)
+		Return(&userpb.UserRow{Id: 2, Username: "u", Name: "n"}, nil)
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(&emptypb.Empty{}, nil)
 
 	srv := UserSrv{UserClient: mock}
 	out, err := srv.Login(context.Background(), "u", "p", "10.0.0.1")
 	require.NoError(t, err)
 	require.NotNil(t, out)
-	assert.Equal(t, uint32(2), out.ID)
+	assert.Equal(t, uint32(2), out.Id)
 	assert.Equal(t, "n", out.Name)
 }
 
@@ -70,7 +70,7 @@ func TestInitUser_Success(t *testing.T) {
 	_, mock := newMockClient(t)
 	orig := newUserClient
 	t.Cleanup(func() { newUserClient = orig })
-	newUserClient = func() (userpb.UserClient, error) { return mock, nil }
+	newUserClient = func() (userpb.UserServiceClient, error) { return mock, nil }
 
 	InitUser()
 	assert.Same(t, mock, UserService.UserClient)
@@ -80,7 +80,7 @@ func TestInitUser_Success(t *testing.T) {
 func TestInitUser_Fatal(t *testing.T) {
 	if os.Getenv("TEST_INITUSER_FATAL") == "1" {
 		orig := newUserClient
-		newUserClient = func() (userpb.UserClient, error) { return nil, errors.New("dial failed") }
+		newUserClient = func() (userpb.UserServiceClient, error) { return nil, errors.New("dial failed") }
 		defer func() { newUserClient = orig }()
 		InitUser() // 期望在此 Fatal 退出
 		return
